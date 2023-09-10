@@ -8,7 +8,7 @@
 2023.09.10 更新同学们对课程的评价  
 
 
-<table>
+<table style="width:auto; table-layout: auto; border-collapse: collapse;">
     <tr>
         <td>序号</td>
         <td>选课编号</td>
