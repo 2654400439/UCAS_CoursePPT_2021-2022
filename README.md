@@ -1,10 +1,4 @@
 # UCAS_CoursePPT_2021
-
-
-
-<iframe src="[https://your-page-url](https://docs.google.com/spreadsheets/d/1jv4XVD_ikQMxSOjsnmEH_P08WhTgaGguZ1w8z4smYZI/edit?usp=sharing)" width="800" height="400"></iframe>
-
-
 国科大一些课程ppt  
 **网络空间安全专业、计算机专业**  
 2021-2022学年秋季学期  
