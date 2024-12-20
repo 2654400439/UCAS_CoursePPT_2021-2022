@@ -1,12 +1,3 @@
-<div style="border: 1px solid #ddd; padding: 10px; margin: 10px; border-radius: 5px;">
-  <strong>同学：小明</strong><br>
-  课程：算法设计<br>
-  评分：5/5<br>
-  评论：内容详细，作业量适中。
-</div>
-
-
-
 # UCAS_CoursePPT_2021
 国科大一些课程ppt  
 **网络空间安全专业、计算机专业**  
