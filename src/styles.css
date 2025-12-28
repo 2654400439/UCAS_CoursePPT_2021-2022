@@ -5,6 +5,8 @@
 /* Subtle Apple-ish defaults */
 :root {
   color-scheme: light;
+  /* sticky panels should sit below the header; JS will update this */
+  --sticky-top: 140px;
 }
 
 * {

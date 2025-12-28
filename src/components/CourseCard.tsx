@@ -27,13 +27,34 @@ function PercentileBar({
         ? "bg-amber-200"
         : "bg-neutral-200";
 
+  const p = Math.max(0, Math.min(100, pct));
+  const ticks = [0, 25, 50, 75, 100];
+
   return (
     <div className="mt-2">
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-neutral-100">
-        <div className={`absolute left-0 top-0 h-full ${cl}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+      <div className="flex items-center justify-between text-[11px] text-neutral-500">
+        <span>0%</span>
+        <span>25%</span>
+        <span>50%</span>
+        <span>75%</span>
+        <span>100%</span>
+      </div>
+
+      <div className="relative mt-1 h-3 w-full overflow-hidden rounded-full border border-neutral-300 bg-neutral-100 shadow-inner">
+        {/* ticks */}
+        {ticks.map((t) => (
+          <div
+            key={t}
+            className="absolute top-0 h-full w-px bg-neutral-300"
+            style={{ left: `${t}%` }}
+            aria-hidden="true"
+          />
+        ))}
+
+        <div className={`absolute left-0 top-0 h-full ${cl}`} style={{ width: `${p}%` }} />
         <div
-          className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 bg-neutral-600"
-          style={{ left: `${Math.max(0, Math.min(100, pct))}%` }}
+          className="absolute top-1/2 h-5 w-0.5 -translate-y-1/2 bg-neutral-800 shadow"
+          style={{ left: `${p}%` }}
           aria-hidden="true"
         />
       </div>
@@ -75,11 +96,9 @@ function pctText(pct: number | null, tmpl: (p: number) => string): string | unde
 export function CourseCard({
   g,
   percentiles,
-  stickyTopClass = "top-24",
 }: {
   g: CourseGroup;
   percentiles: Percentiles;
-  stickyTopClass?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [showDetailScores, setShowDetailScores] = useState(false);
@@ -129,7 +148,7 @@ export function CourseCard({
 
       {open && (
         <div className="border-t border-neutral-200 p-5 pt-4">
-          <div className={`sticky z-10 ${stickyTopClass}`}>
+          <div className="sticky z-[1]" style={{ top: "var(--sticky-top)" }}>
             <div className="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

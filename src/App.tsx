@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { REVIEWS } from "./data/reviews";
 import { aggregateCourses } from "./lib/aggregate";
 import { applyFilters, defaultFilters, getFacetValues } from "./lib/filter";
@@ -32,6 +32,7 @@ function ValueLegend() {
 }
 
 export default function App() {
+  const headerRef = useRef<HTMLDivElement | null>(null);
   const groups = useMemo(() => aggregateCourses(REVIEWS), []);
   const facets = useMemo(() => getFacetValues(groups), [groups]);
   const latestTerm = facets.terms[0] ?? "";
@@ -40,10 +41,29 @@ export default function App() {
   const [filters, setFilters] = useState(defaultFilters());
   const filtered = useMemo(() => applyFilters(groups, filters), [groups, filters]);
 
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const update = () => {
+      const h = el.getBoundingClientRect().height;
+      // extra spacing so the sticky summary doesn't visually touch the header
+      root.style.setProperty("--sticky-top", `${Math.ceil(h + 12)}px`);
+    };
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-neutral-50 bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(59,130,246,.12),transparent_55%),radial-gradient(900px_circle_at_80%_-10%,rgba(236,72,153,.10),transparent_55%)]">
       <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/70 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 py-4 md:px-6">
+        <div ref={headerRef} className="mx-auto max-w-6xl px-4 py-4 md:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-3xl">
@@ -93,7 +113,7 @@ export default function App() {
 
         <div className="space-y-4">
           {filtered.map((g) => (
-            <CourseCard key={g.key} g={g} percentiles={percentiles} stickyTopClass="top-24" />
+            <CourseCard key={g.key} g={g} percentiles={percentiles} />
           ))}
         </div>
 
