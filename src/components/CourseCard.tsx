@@ -3,6 +3,7 @@ import type { CourseGroup } from "../lib/aggregate";
 import { Badge } from "./Badge";
 import { StarRating } from "./StarRating";
 import { normalizeText } from "../lib/normalize";
+import type { Percentiles } from "../lib/stats";
 
 function valueAccentClass(valueAvg: number): string {
   if (valueAvg >= 4.5) return "from-emerald-400 to-emerald-600";
@@ -11,18 +12,75 @@ function valueAccentClass(valueAvg: number): string {
   return "from-rose-400 to-rose-600";
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function PercentileBar({
+  pct,
+  tone = "neutral",
+}: {
+  pct: number | null;
+  tone?: "good" | "warn" | "neutral";
+}) {
+  if (pct === null) return null;
+  const cl =
+    tone === "good"
+      ? "bg-emerald-200"
+      : tone === "warn"
+        ? "bg-amber-200"
+        : "bg-neutral-200";
+
+  return (
+    <div className="mt-2">
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+        <div className={`absolute left-0 top-0 h-full ${cl}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+        <div
+          className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 bg-neutral-600"
+          style={{ left: `${Math.max(0, Math.min(100, pct))}%` }}
+          aria-hidden="true"
+        />
+      </div>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+  pct,
+  tone,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  pct?: number | null;
+  tone?: "good" | "warn" | "neutral";
+}) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
       <div className="text-xs text-neutral-600">{label}</div>
       <div className="mt-1">
         <StarRating value={value} />
       </div>
+      {hint ? <div className="mt-1 text-xs text-neutral-600">{hint}</div> : null}
+      {pct !== undefined ? <PercentileBar pct={pct} tone={tone} /> : null}
     </div>
   );
 }
 
-export function CourseCard({ g }: { g: CourseGroup }) {
+function pctText(pct: number | null, tmpl: (p: number) => string): string | undefined {
+  if (pct === null) return undefined;
+  const p = Math.round(pct);
+  return tmpl(p);
+}
+
+export function CourseCard({
+  g,
+  percentiles,
+  stickyTopClass = "top-24",
+}: {
+  g: CourseGroup;
+  percentiles: Percentiles;
+  stickyTopClass?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [showDetailScores, setShowDetailScores] = useState(false);
 
@@ -36,7 +94,7 @@ export function CourseCard({ g }: { g: CourseGroup }) {
   }, [g.colleges, g.creditsMin, g.creditsMax]);
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-soft transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="group relative rounded-2xl border border-neutral-200 bg-white shadow-soft transition duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
       <div
         className={`pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${valueAccentClass(
           g.valueAvg,
@@ -71,7 +129,8 @@ export function CourseCard({ g }: { g: CourseGroup }) {
 
       {open && (
         <div className="border-t border-neutral-200 p-5 pt-4">
-          <div className="rounded-2xl border border-neutral-200 bg-gradient-to-b from-white to-neutral-50 p-4">
+          <div className={`sticky z-10 ${stickyTopClass}`}>
+            <div className="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-neutral-900">综合评分（平均）</div>
@@ -88,9 +147,31 @@ export function CourseCard({ g }: { g: CourseGroup }) {
             </div>
 
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <Metric label="价值" value={g.valueAvg} />
-              <Metric label="及格难度（越低越容易）" value={g.passDifficultyAvg} />
-              <Metric label="高分难度（越低越容易）" value={g.highScoreDifficultyAvg} />
+              <Metric
+                label="价值"
+                value={g.valueAvg}
+                hint={pctText(percentiles.valuePctHigherBetter(g.valueAvg), (p) => `超过 ${p}% 的课程`)}
+                pct={percentiles.valuePctHigherBetter(g.valueAvg)}
+                tone="good"
+              />
+              <Metric
+                label="及格难度（越低越容易）"
+                value={g.passDifficultyAvg}
+                hint={pctText(percentiles.passEasePctHigherBetter(g.passDifficultyAvg), (p) => `比 ${p}% 的课程更容易及格`)}
+                pct={percentiles.passEasePctHigherBetter(g.passDifficultyAvg)}
+                tone="warn"
+              />
+              <Metric
+                label="高分难度（越低越容易）"
+                value={g.highScoreDifficultyAvg}
+                hint={pctText(
+                  percentiles.highScoreEasePctHigherBetter(g.highScoreDifficultyAvg),
+                  (p) => `比 ${p}% 的课程更容易拿高分`,
+                )}
+                pct={percentiles.highScoreEasePctHigherBetter(g.highScoreDifficultyAvg)}
+                tone="warn"
+              />
+            </div>
             </div>
           </div>
 

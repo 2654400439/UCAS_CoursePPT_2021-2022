@@ -5,6 +5,7 @@ import { applyFilters, defaultFilters, getFacetValues } from "./lib/filter";
 import { FiltersBar } from "./components/FiltersBar";
 import { CourseCard } from "./components/CourseCard";
 import { Badge } from "./components/Badge";
+import { buildPercentiles } from "./lib/stats";
 
 function ValueLegend() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
   const groups = useMemo(() => aggregateCourses(REVIEWS), []);
   const facets = useMemo(() => getFacetValues(groups), [groups]);
   const latestTerm = facets.terms[0] ?? "";
+  const percentiles = useMemo(() => buildPercentiles(groups), [groups]);
 
   const [filters, setFilters] = useState(defaultFilters());
   const filtered = useMemo(() => applyFilters(groups, filters), [groups, filters]);
@@ -91,7 +93,7 @@ export default function App() {
 
         <div className="space-y-4">
           {filtered.map((g) => (
-            <CourseCard key={g.key} g={g} />
+            <CourseCard key={g.key} g={g} percentiles={percentiles} stickyTopClass="top-24" />
           ))}
         </div>
 
