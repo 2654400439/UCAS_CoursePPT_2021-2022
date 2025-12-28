@@ -1,0 +1,112 @@
+name: 提交课程评价
+description: 按固定格式提交一条课程评价（会在审核后合并到网站）
+title: "[评价] 课程名 - 老师 - 学期"
+labels: ["review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你愿意分享课程体验！
+        - 建议：尽量客观、具体，避免人身攻击
+        - 多老师请用 `、` 分隔；不要写“等”（系统会做清洗，但你写得规范更好）
+
+  - type: input
+    id: courseName
+    attributes:
+      label: 课程名称
+      placeholder: 例如：Web安全技术
+    validations:
+      required: true
+
+  - type: input
+    id: instructors
+    attributes:
+      label: 任课老师
+      placeholder: 例如：刘奇旭、刘潮歌
+    validations:
+      required: true
+
+  - type: input
+    id: term
+    attributes:
+      label: 学期
+      description: 建议使用规范格式，例如：2024-2025学年 · 秋（第1学期）
+      placeholder: 例如：2024-2025学年 · 春（第2学期）
+    validations:
+      required: true
+
+  - type: input
+    id: college
+    attributes:
+      label: 开课学院（可选）
+      placeholder: 例如：计算机学院
+    validations:
+      required: false
+
+  - type: input
+    id: credits
+    attributes:
+      label: 学分
+      placeholder: 例如：2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: degree
+    attributes:
+      label: 学位课
+      options:
+        - 是
+        - 否
+    validations:
+      required: true
+
+  - type: dropdown
+    id: value
+    attributes:
+      label: 价值（1-5星）
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+        - "5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: passDifficulty
+    attributes:
+      label: 及格难度（1-5星，越低越容易）
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+        - "5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: highScoreDifficulty
+    attributes:
+      label: 高分难度（1-5星，越低越容易）
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+        - "5"
+    validations:
+      required: true
+
+  - type: textarea
+    id: remark
+    attributes:
+      label: 备注（最重要）
+      description: 例如：上课形式/作业/考试/给分/避坑建议/适合人群
+      placeholder: 请尽量具体（可换行）
+    validations:
+      required: true
+
+
