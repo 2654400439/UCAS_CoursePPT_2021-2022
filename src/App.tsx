@@ -6,6 +6,30 @@ import { FiltersBar } from "./components/FiltersBar";
 import { CourseCard } from "./components/CourseCard";
 import { Badge } from "./components/Badge";
 
+function ValueLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-600">
+      <span className="font-medium text-neutral-700">颜色条=综合价值</span>
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-6 rounded-full bg-gradient-to-r from-rose-400 to-rose-600" aria-hidden="true" />
+        <span>偏低</span>
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-6 rounded-full bg-gradient-to-r from-amber-400 to-amber-600" aria-hidden="true" />
+        <span>中等</span>
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-6 rounded-full bg-gradient-to-r from-sky-400 to-sky-600" aria-hidden="true" />
+        <span>较高</span>
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-6 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" aria-hidden="true" />
+        <span>很高</span>
+      </span>
+    </div>
+  );
+}
+
 export default function App() {
   const groups = useMemo(() => aggregateCourses(REVIEWS), []);
   const facets = useMemo(() => getFacetValues(groups), [groups]);
@@ -20,9 +44,14 @@ export default function App() {
         <div className="mx-auto max-w-6xl px-4 py-4 md:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-lg font-semibold tracking-tight text-neutral-900">国科大课程评价</div>
+              <div className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-3xl">
+                国科大课程评价
+              </div>
+              <div className="mt-1 text-sm text-neutral-700">
+                帮你在选课前快速了解：这门课<strong className="font-semibold">值不值得</strong>、<strong className="font-semibold">难不难</strong>、以及学长学姐的真实备注。
+              </div>
               <div className="mt-1 text-xs text-neutral-600">
-                按“课程名 + 老师”聚合 · 搜索/筛选/排序 · 折叠查看多条评价
+                用法：上方搜索/筛选 → 点击课程卡片展开 → 先看综合评分，再看每条备注。
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -39,6 +68,9 @@ export default function App() {
                 GitHub
               </a>
             </div>
+          </div>
+          <div className="mt-3">
+            <ValueLegend />
           </div>
         </div>
       </div>

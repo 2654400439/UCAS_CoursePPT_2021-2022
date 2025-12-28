@@ -24,6 +24,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 
 export function CourseCard({ g }: { g: CourseGroup }) {
   const [open, setOpen] = useState(false);
+  const [showDetailScores, setShowDetailScores] = useState(false);
 
   const subtitle = useMemo(() => {
     const parts: string[] = [];
@@ -70,14 +71,34 @@ export function CourseCard({ g }: { g: CourseGroup }) {
 
       {open && (
         <div className="border-t border-neutral-200 p-5 pt-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Metric label="价值" value={g.valueAvg} />
-            <Metric label="及格难度（越低越容易）" value={g.passDifficultyAvg} />
-            <Metric label="高分难度（越低越容易）" value={g.highScoreDifficultyAvg} />
+          <div className="rounded-2xl border border-neutral-200 bg-gradient-to-b from-white to-neutral-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-neutral-900">综合评分（平均）</div>
+                <div className="mt-1 text-xs text-neutral-600">
+                  综合价值用于排序与颜色条展示；单条评价分数默认收起，重点看备注内容。
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDetailScores((v) => !v)}
+                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm hover:bg-neutral-50 hover:shadow active:bg-neutral-50/70"
+              >
+                {showDetailScores ? "隐藏单条分数" : "显示单条分数"}
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <Metric label="价值" value={g.valueAvg} />
+              <Metric label="及格难度（越低越容易）" value={g.passDifficultyAvg} />
+              <Metric label="高分难度（越低越容易）" value={g.highScoreDifficultyAvg} />
+            </div>
           </div>
 
           <div className="mt-4">
-            <div className="text-xs text-neutral-600">评价列表</div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-semibold text-neutral-900">评价列表</div>
+              <div className="text-xs text-neutral-600">优先阅读每条“备注”，这是最有信息量的部分。</div>
+            </div>
             <div className="mt-2 space-y-3">
               {g.reviews.map((r) => (
                 <div key={`${g.key}_${r.id}`} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
@@ -90,30 +111,32 @@ export function CourseCard({ g }: { g: CourseGroup }) {
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <div className="text-xs text-neutral-600">价值</div>
-                      <div className="mt-1">
-                        <StarRating value={r.value} />
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <div className="text-xs text-neutral-600">及格难度</div>
-                      <div className="mt-1">
-                        <StarRating value={r.passDifficulty} />
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <div className="text-xs text-neutral-600">高分难度</div>
-                      <div className="mt-1">
-                        <StarRating value={r.highScoreDifficulty} />
-                      </div>
-                    </div>
-                  </div>
-
                   {String(r.remark ?? "").trim() && (
-                    <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
+                    <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-900">
                       {String(r.remark ?? "").trim()}
+                    </div>
+                  )}
+
+                  {showDetailScores && (
+                    <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                        <div className="text-xs text-neutral-600">价值</div>
+                        <div className="mt-1">
+                          <StarRating value={r.value} />
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                        <div className="text-xs text-neutral-600">及格难度</div>
+                        <div className="mt-1">
+                          <StarRating value={r.passDifficulty} />
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                        <div className="text-xs text-neutral-600">高分难度</div>
+                        <div className="mt-1">
+                          <StarRating value={r.highScoreDifficulty} />
+                        </div>
+                      </div>
                     </div>
                   )}
 
