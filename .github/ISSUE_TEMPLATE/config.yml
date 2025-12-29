@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: 想快速纠错/补充？
-    url: https://github.com/<you>/<repo>/issues/new?template=review.yml
+    url: https://github.com/2654400439/UCAS_CoursePPT_2021-2022/issues/new?template=review.yml
     about: 使用“提交课程评价”表单提交新增评价或纠错信息
 
 

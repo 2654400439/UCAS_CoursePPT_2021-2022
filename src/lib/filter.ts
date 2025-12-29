@@ -25,7 +25,7 @@ export function defaultFilters(): Filters {
     term: "",
     college: "",
     minCredits: 0,
-    sort: "value_desc",
+    sort: "reviews_desc",
   };
 }
 

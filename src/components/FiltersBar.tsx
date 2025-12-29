@@ -111,7 +111,7 @@ export function FiltersBar({
                 term: "",
                 college: "",
                 minCredits: 0,
-                sort: "value_desc",
+                sort: "reviews_desc",
               })
             }
             className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm hover:bg-neutral-50 hover:shadow active:bg-neutral-50/70"
