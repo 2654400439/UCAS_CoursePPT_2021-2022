@@ -149,9 +149,10 @@ export function CourseCard({
       </button>
 
       {open && (
-        <div className="border-t border-neutral-200 p-5 pt-4">
-          <div className="sticky z-[1]" style={{ top: "var(--sticky-top)" }}>
-            <div className="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+        <div className="border-t border-neutral-200 p-4 pt-3 md:p-5 md:pt-4">
+          {/* Sticky summary is great on desktop, but too invasive on mobile. Enable sticky only on md+. */}
+          <div className="z-[1] md:sticky" style={{ top: "var(--sticky-top)" }}>
+            <div className="rounded-2xl border border-neutral-200 bg-white/90 p-3 shadow-sm backdrop-blur md:p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-neutral-900">综合评分（平均）</div>

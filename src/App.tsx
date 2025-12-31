@@ -69,16 +69,16 @@ export default function App() {
   return (
     <div className="min-h-screen bg-neutral-50 bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(59,130,246,.12),transparent_55%),radial-gradient(900px_circle_at_80%_-10%,rgba(236,72,153,.10),transparent_55%)]">
       <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/70 backdrop-blur">
-        <div ref={headerRef} className="mx-auto max-w-6xl px-4 py-4 md:px-6">
+        <div ref={headerRef} className="mx-auto max-w-6xl px-4 py-3 md:px-6 md:py-4">
           <div className="flex flex-col gap-3 md:grid md:grid-cols-[1fr_auto] md:items-start">
             <div>
-              <div className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-3xl">
+              <div className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl md:text-3xl">
                 国科大课程评价
               </div>
-              <div className="mt-1 text-sm text-neutral-700">
+              <div className="mt-1 text-xs text-neutral-700 sm:text-sm">
                 帮你在选课前快速了解：这门课<strong className="font-semibold">值不值得</strong>、<strong className="font-semibold">难不难</strong>、以及学长学姐的真实备注。
               </div>
-              <div className="mt-1 text-xs text-neutral-600">
+              <div className="mt-1 hidden text-xs text-neutral-600 sm:block">
                 用法：上方搜索/筛选 → 点击课程卡片展开 → 先看综合评分，再看每条备注。
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="mt-3">
+          <div className="mt-2 hidden sm:block md:mt-3">
             <ValueLegend />
           </div>
         </div>
