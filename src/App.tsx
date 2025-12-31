@@ -6,7 +6,7 @@ import { FiltersBar } from "./components/FiltersBar";
 import { CourseCard } from "./components/CourseCard";
 import { Badge } from "./components/Badge";
 import { buildPercentiles } from "./lib/stats";
-import { GITHUB_NEW_REVIEW_URL, GITHUB_REPO_URL, REMINDER_SIGNUP_URL } from "./config";
+import { GITHUB_REPO_URL, REMINDER_SIGNUP_URL, REVIEW_SUBMIT_URL } from "./config";
 
 function ValueLegend() {
   return (
@@ -109,10 +109,10 @@ export default function App() {
                 ) : null}
                 <a
                   className="rounded-xl bg-neutral-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800"
-                  href={GITHUB_NEW_REVIEW_URL}
+                  href={REVIEW_SUBMIT_URL}
                   target="_blank"
                   rel="noreferrer"
-                  title="跳转到 GitHub 表单提交评价（需要登录 GitHub）"
+                  title="跳转到问卷提交评价（更方便，也更隐私友好）"
                 >
                   提交评价
                 </a>
