@@ -7,6 +7,13 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: "./",
   plugins: [react()],
+  server: {
+    // On some Windows setups file watching can be flaky; polling is slower but much more reliable.
+    watch: {
+      usePolling: true,
+      interval: 200,
+    },
+  },
 });
 
 

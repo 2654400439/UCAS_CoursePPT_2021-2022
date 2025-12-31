@@ -1,11 +1,13 @@
 import type { ReviewRow, Star } from "../data/reviews";
 import { canonicalInstructors, makeCourseKey, normalizeText } from "./normalize";
-import { termSortKey } from "./term";
+import { normalizeTerm, termSeason, termSortKey, type TermSeason } from "./term";
 
 export type CourseGroup = {
   key: string;
   courseName: string;
   instructorsCanonical: string;
+  /** 秋/春/夏/未知（用于区分同课不同季节，并跨年份合并） */
+  termSeason: TermSeason;
   colleges: string[];
   terms: string[];
   creditsMin: number;
@@ -33,7 +35,8 @@ export function aggregateCourses(rows: ReviewRow[]): CourseGroup[] {
   const byKey = new Map<string, ReviewRow[]>();
   for (const r of rows) {
     const courseName = normalizeText(r.courseName);
-    const key = makeCourseKey(courseName, r.instructors);
+    const season = termSeason(r.term);
+    const key = `${makeCourseKey(courseName, r.instructors)}__${season}`;
     const list = byKey.get(key) ?? [];
     list.push({ ...r, courseName });
     byKey.set(key, list);
@@ -43,11 +46,19 @@ export function aggregateCourses(rows: ReviewRow[]): CourseGroup[] {
   for (const [key, reviews] of byKey.entries()) {
     const courseName = reviews[0]?.courseName ?? "";
     const instructorsCanonical = canonicalInstructors(reviews[0]?.instructors ?? "");
+    const season: TermSeason = termSeason(reviews[0]?.term ?? "");
 
     const colleges = [...new Set(reviews.map((r) => normalizeText(r.college ?? "")).filter(Boolean))].sort(
       (a, b) => a.localeCompare(b, "zh-CN"),
     );
-    const terms = [...new Set(reviews.map((r) => normalizeText(r.term)))].filter(Boolean);
+    const terms = [
+      ...new Set(
+        reviews
+          .map((r) => normalizeTerm(r.term).label || normalizeText(r.term))
+          .map((t) => normalizeText(t))
+          .filter(Boolean),
+      ),
+    ];
     const credits = reviews.map((r) => r.credits).filter((x) => Number.isFinite(x));
 
     // Stable sort inside group: newest-ish term first, then id desc
@@ -65,6 +76,7 @@ export function aggregateCourses(rows: ReviewRow[]): CourseGroup[] {
       key,
       courseName,
       instructorsCanonical,
+      termSeason: season,
       colleges,
       terms,
       creditsMin: credits.length ? Math.min(...credits) : 0,

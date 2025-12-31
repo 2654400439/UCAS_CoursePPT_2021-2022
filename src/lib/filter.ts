@@ -1,6 +1,6 @@
 import type { CourseGroup } from "./aggregate";
 import { normalizeText } from "./normalize";
-import { termSortKey } from "./term";
+import { normalizeTerm, termSortKey, type TermSeason } from "./term";
 
 export type SortKey =
   | "value_desc"
@@ -12,7 +12,8 @@ export type SortKey =
 export type Filters = {
   q: string;
   degree: "all" | "degree" | "non_degree";
-  term: string; // exact match or ""
+  /** 秋/春/夏/未知（空字符串表示不过滤） */
+  termSeason: "" | TermSeason;
   college: string; // exact match or ""
   minCredits: number; // 0 means no limit
   sort: SortKey;
@@ -22,7 +23,7 @@ export function defaultFilters(): Filters {
   return {
     q: "",
     degree: "all",
-    term: "",
+    termSeason: "",
     college: "",
     minCredits: 0,
     sort: "reviews_desc",
@@ -30,27 +31,34 @@ export function defaultFilters(): Filters {
 }
 
 export function getFacetValues(groups: CourseGroup[]) {
-  const terms = new Set<string>();
+  const termSeasons = new Set<TermSeason>();
   const colleges = new Set<string>();
   let maxCredits = 0;
+  let latestTermSort = -1;
+  let latestTermLabel = "";
   for (const g of groups) {
-    for (const t of g.terms) terms.add(normalizeText(t));
+    termSeasons.add(g.termSeason);
     for (const c of g.colleges) colleges.add(normalizeText(c));
     maxCredits = Math.max(maxCredits, g.creditsMax);
+
+    for (const r of g.reviews) {
+      const sk = termSortKey(r.term) ?? -1;
+      if (sk > latestTermSort) {
+        latestTermSort = sk;
+        latestTermLabel = normalizeTerm(r.term).label || normalizeText(r.term);
+      }
+    }
   }
 
-  const termList = [...terms].filter(Boolean);
-  termList.sort((a, b) => {
-    const sa = termSortKey(a) ?? -1;
-    const sb = termSortKey(b) ?? -1;
-    if (sa !== sb) return sb - sa; // newest first
-    return b.localeCompare(a, "zh-CN");
-  });
+  const seasonOrder: Record<TermSeason, number> = { 秋: 1, 春: 2, 夏: 3, 未知: 99 };
+  const termSeasonList = [...termSeasons].filter(Boolean);
+  termSeasonList.sort((a, b) => (seasonOrder[a] ?? 99) - (seasonOrder[b] ?? 99));
 
   return {
-    terms: termList,
+    termSeasons: termSeasonList,
     colleges: [...colleges].filter(Boolean).sort((a, b) => a.localeCompare(b, "zh-CN")),
     maxCredits,
+    latestTermLabel: normalizeText(latestTermLabel),
   };
 }
 
@@ -73,7 +81,7 @@ export function applyFilters(groups: CourseGroup[], f: Filters): CourseGroup[] {
     if (!matchQuery(g, f.q)) return false;
     if (f.degree === "degree" && !g.isDegreeCourseAny) return false;
     if (f.degree === "non_degree" && g.isDegreeCourseAny) return false;
-    if (f.term && !g.terms.some((t) => normalizeText(t) === normalizeText(f.term))) return false;
+    if (f.termSeason && g.termSeason !== f.termSeason) return false;
     if (f.college && !g.colleges.some((c) => normalizeText(c) === normalizeText(f.college))) return false;
     if (f.minCredits > 0 && g.creditsMax < f.minCredits) return false;
     return true;

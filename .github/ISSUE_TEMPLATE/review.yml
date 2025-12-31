@@ -9,6 +9,7 @@ body:
         感谢你愿意分享课程体验！
         - 建议：尽量客观、具体，避免人身攻击
         - 多老师请用 `、` 分隔；不要写“等”（系统会做清洗，但你写得规范更好）
+        - 学期：请先选择“秋/春/夏”，再填写“学年”（例如 `2024-2025`）
 
   - type: input
     id: courseName
@@ -26,12 +27,25 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: term
+  - type: dropdown
+    id: termSeason
     attributes:
-      label: 学期
-      description: 建议使用规范格式，例如：2024-2025学年 · 秋（第1学期）
-      placeholder: 例如：2024-2025学年 · 春（第2学期）
+      label: 学期（选择）
+      description: 为了后续聚合一致性，学期请按“秋/春/夏”选择（同一季节跨年份会合并展示；不同季节会分开）
+      options:
+        - 秋（第1学期）
+        - 春（第2学期）
+        - 夏（第3学期）
+        - 不确定
+    validations:
+      required: true
+
+  - type: input
+    id: academicYear
+    attributes:
+      label: 学年（必填）
+      description: 填 `YYYY-YYYY`（例如 `2024-2025`）。如果不确定可先写 `2024-2025?`，审核时我们会再确认/修正。
+      placeholder: 例如：2024-2025
     validations:
       required: true
 
@@ -131,6 +145,7 @@ body:
     id: value
     attributes:
       label: 价值（1-5星）
+      description: 这是“综合价值”评分：结合**收获/课程质量/给分体验/投入产出比**来评。建议也在“备注”里写一句你给这个分数的理由（最有帮助）。
       options:
         - "1"
         - "2"

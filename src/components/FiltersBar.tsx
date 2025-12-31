@@ -1,4 +1,5 @@
 import type { Filters, SortKey } from "../lib/filter";
+import type { TermSeason } from "../lib/term";
 
 export function FiltersBar({
   filters,
@@ -7,7 +8,7 @@ export function FiltersBar({
 }: {
   filters: Filters;
   setFilters: (next: Filters) => void;
-  facets: { terms: string[]; colleges: string[]; maxCredits: number };
+  facets: { termSeasons: TermSeason[]; colleges: string[]; maxCredits: number; latestTermLabel: string };
 }) {
   const sortOptions: { key: SortKey; label: string }[] = [
     { key: "value_desc", label: "价值高优先" },
@@ -44,16 +45,16 @@ export function FiltersBar({
         </div>
 
         <div className="md:col-span-2">
-          <label className="text-xs text-neutral-600">学期</label>
+          <label className="text-xs text-neutral-600">学期（按季节合并）</label>
           <select
-            value={filters.term}
-            onChange={(e) => setFilters({ ...filters, term: e.target.value })}
+            value={filters.termSeason}
+            onChange={(e) => setFilters({ ...filters, termSeason: e.target.value as Filters["termSeason"] })}
             className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none shadow-sm focus:border-neutral-300 focus:shadow"
           >
             <option value="">全部</option>
-            {facets.terms.map((t) => (
-              <option key={t} value={t}>
-                {t}
+            {facets.termSeasons.map((s) => (
+              <option key={s} value={s}>
+                {s}
               </option>
             ))}
           </select>
@@ -108,7 +109,7 @@ export function FiltersBar({
               setFilters({
                 q: "",
                 degree: "all",
-                term: "",
+                termSeason: "",
                 college: "",
                 minCredits: 0,
                 sort: "reviews_desc",

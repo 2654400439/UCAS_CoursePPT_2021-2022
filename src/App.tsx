@@ -6,7 +6,7 @@ import { FiltersBar } from "./components/FiltersBar";
 import { CourseCard } from "./components/CourseCard";
 import { Badge } from "./components/Badge";
 import { buildPercentiles } from "./lib/stats";
-import { GITHUB_NEW_REVIEW_URL, GITHUB_REPO_URL } from "./config";
+import { GITHUB_NEW_REVIEW_URL, GITHUB_REPO_URL, REMINDER_SIGNUP_URL } from "./config";
 
 function ValueLegend() {
   return (
@@ -36,11 +36,16 @@ export default function App() {
   const headerRef = useRef<HTMLDivElement | null>(null);
   const groups = useMemo(() => aggregateCourses(REVIEWS), []);
   const facets = useMemo(() => getFacetValues(groups), [groups]);
-  const latestTerm = facets.terms[0] ?? "";
+  const latestTerm = facets.latestTermLabel ?? "";
   const percentiles = useMemo(() => buildPercentiles(groups), [groups]);
 
   const [filters, setFilters] = useState(defaultFilters());
   const filtered = useMemo(() => applyFilters(groups, filters), [groups, filters]);
+
+  const reminderSignupUrl = (REMINDER_SIGNUP_URL || "").trim();
+  const reminderEnabled = Boolean(reminderSignupUrl);
+  // Only for current page lifetime: click once -> hide dot. Refresh / reopen -> dot comes back.
+  const [reminderDotDismissed, setReminderDotDismissed] = useState(false);
 
   useLayoutEffect(() => {
     const el = headerRef.current;
@@ -65,7 +70,7 @@ export default function App() {
     <div className="min-h-screen bg-neutral-50 bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(59,130,246,.12),transparent_55%),radial-gradient(900px_circle_at_80%_-10%,rgba(236,72,153,.10),transparent_55%)]">
       <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/70 backdrop-blur">
         <div ref={headerRef} className="mx-auto max-w-6xl px-4 py-4 md:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-[1fr_auto] md:items-start">
             <div>
               <div className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-3xl">
                 国科大课程评价
@@ -77,28 +82,50 @@ export default function App() {
                 用法：上方搜索/筛选 → 点击课程卡片展开 → 先看综合评分，再看每条备注。
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge>{groups.length} 门课</Badge>
-              <Badge>{REVIEWS.length} 条评价</Badge>
-              {latestTerm ? <Badge>最新学期：{latestTerm}</Badge> : null}
-              <a
-                className="rounded-xl bg-neutral-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800"
-                href={GITHUB_NEW_REVIEW_URL}
-                target="_blank"
-                rel="noreferrer"
-                title="跳转到 GitHub 表单提交评价（需要登录 GitHub）"
-              >
-                提交评价
-              </a>
-              <a
-                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 hover:bg-neutral-50"
-                href={GITHUB_REPO_URL}
-                target="_blank"
-                rel="noreferrer"
-                title="查看仓库 / 历史 / 提交记录"
-              >
-                GitHub
-              </a>
+            <div className="flex flex-col gap-2 md:items-end">
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                <Badge>{groups.length} 门课</Badge>
+                <Badge>{REVIEWS.length} 条评价</Badge>
+                {latestTerm ? <Badge>最新学期：{latestTerm}</Badge> : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                {reminderEnabled ? (
+                  <a
+                    className="relative rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-900 shadow-sm hover:bg-neutral-50"
+                    href={reminderSignupUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="登记邮箱：学期结束后提醒你回来补充评价"
+                    onClick={() => setReminderDotDismissed(true)}
+                  >
+                    {!reminderDotDismissed ? (
+                      <span
+                        className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                    学期末提醒
+                  </a>
+                ) : null}
+                <a
+                  className="rounded-xl bg-neutral-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800"
+                  href={GITHUB_NEW_REVIEW_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="跳转到 GitHub 表单提交评价（需要登录 GitHub）"
+                >
+                  提交评价
+                </a>
+                <a
+                  className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 hover:bg-neutral-50"
+                  href={GITHUB_REPO_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="查看仓库 / 历史 / 提交记录"
+                >
+                  GitHub
+                </a>
+              </div>
             </div>
           </div>
           <div className="mt-3">

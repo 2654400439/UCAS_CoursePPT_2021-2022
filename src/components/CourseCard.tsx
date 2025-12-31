@@ -3,6 +3,7 @@ import type { CourseGroup } from "../lib/aggregate";
 import { Badge } from "./Badge";
 import { StarRating } from "./StarRating";
 import { normalizeText } from "../lib/normalize";
+import { normalizeTerm } from "../lib/term";
 import type { Percentiles } from "../lib/stats";
 
 function valueAccentClass(valueAvg: number): string {
@@ -129,6 +130,7 @@ export function CourseCard({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-base font-semibold text-neutral-900">{g.courseName}</h3>
             {g.isDegreeCourseAny && <Badge tone="good">学位课</Badge>}
+            <Badge>{g.termSeason}</Badge>
             <Badge>{g.reviewCount} 条评价</Badge>
           </div>
           <div className="mt-1 truncate text-sm text-neutral-700">{g.instructorsCanonical}</div>
@@ -203,7 +205,9 @@ export function CourseCard({
               {g.reviews.map((r) => (
                 <div key={`${g.key}_${r.id}`} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm font-medium text-neutral-900">{normalizeText(r.term)}</div>
+                    <div className="text-sm font-medium text-neutral-900">
+                      {normalizeTerm(r.term).label || normalizeText(r.term)}
+                    </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {r.isDegreeCourse && <Badge tone="good">学位课</Badge>}
                       {r.credits ? <Badge>{r.credits} 学分</Badge> : null}

@@ -9,6 +9,8 @@ export type ParsedTerm = {
   warnings: string[];
 };
 
+export type TermSeason = "秋" | "春" | "夏" | "未知";
+
 const seasonToIndex: Record<string, 1 | 2 | 3> = {
   秋: 1,
   春: 2,
@@ -43,6 +45,26 @@ function detectSemesterIndex(termRaw: string): 1 | 2 | 3 | null {
   if (/第二学期|第2学期|二学期/.test(termRaw)) return 2;
   if (/第三学期|第3学期|三学期/.test(termRaw)) return 3;
   return null;
+}
+
+/**
+ * 只提取“学期季节/类型”，用于“同一季节跨年份合并、不同季节拆分”。
+ *
+ * - 能识别：秋/春/夏；也可从“第1/2/3学期”推断
+ * - 识别失败则返回“未知”
+ */
+export function termSeason(term: string): TermSeason {
+  const raw = normalizeText(term);
+  if (!raw) return "未知";
+  const s = raw.replace(/[—–]/g, "-");
+
+  const seasonDetected = detectSeason(s);
+  if (seasonDetected) return seasonDetected;
+
+  const idxDetected = detectSemesterIndex(s);
+  if (idxDetected) return indexToSeason[idxDetected];
+
+  return "未知";
 }
 
 /**
