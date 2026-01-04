@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { REVIEWS } from "./data/reviews";
 import { aggregateCourses } from "./lib/aggregate";
 import { applyFilters, defaultFilters, getFacetValues } from "./lib/filter";
@@ -6,7 +6,8 @@ import { FiltersBar } from "./components/FiltersBar";
 import { CourseCard } from "./components/CourseCard";
 import { Badge } from "./components/Badge";
 import { buildPercentiles } from "./lib/stats";
-import { GITHUB_REPO_URL, REMINDER_SIGNUP_URL, REVIEW_SUBMIT_URL } from "./config";
+import { GITHUB_REPO_URL, REMINDER_SIGNUP_URL } from "./config";
+import { SubmitPage } from "./pages/SubmitPage";
 
 function ValueLegend() {
   return (
@@ -33,6 +34,7 @@ function ValueLegend() {
 }
 
 export default function App() {
+  const [route, setRoute] = useState<"home" | "submit">("home");
   const headerRef = useRef<HTMLDivElement | null>(null);
   const groups = useMemo(() => aggregateCourses(REVIEWS), []);
   const facets = useMemo(() => getFacetValues(groups), [groups]);
@@ -46,6 +48,14 @@ export default function App() {
   const reminderEnabled = Boolean(reminderSignupUrl);
   // Only for current page lifetime: click once -> hide dot. Refresh / reopen -> dot comes back.
   const [reminderDotDismissed, setReminderDotDismissed] = useState(false);
+
+  useEffect(() => {
+    const getRoute = () => (window.location.hash.startsWith("#/submit") ? "submit" : "home");
+    const update = () => setRoute(getRoute());
+    update();
+    window.addEventListener("hashchange", update);
+    return () => window.removeEventListener("hashchange", update);
+  }, []);
 
   useLayoutEffect(() => {
     const el = headerRef.current;
@@ -65,6 +75,14 @@ export default function App() {
       window.removeEventListener("resize", update);
     };
   }, []);
+
+  if (route === "submit") {
+    return (
+      <div className="min-h-screen bg-neutral-50 bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(59,130,246,.12),transparent_55%),radial-gradient(900px_circle_at_80%_-10%,rgba(236,72,153,.10),transparent_55%)]">
+        <SubmitPage />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50 bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(59,130,246,.12),transparent_55%),radial-gradient(900px_circle_at_80%_-10%,rgba(236,72,153,.10),transparent_55%)]">
@@ -109,10 +127,8 @@ export default function App() {
                 ) : null}
                 <a
                   className="rounded-xl bg-neutral-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800"
-                  href={REVIEW_SUBMIT_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="跳转到问卷提交评价（更方便，也更隐私友好）"
+                  href="#/submit"
+                  title="粘贴已选课程并批量填写评价（本地页面）"
                 >
                   提交评价
                 </a>

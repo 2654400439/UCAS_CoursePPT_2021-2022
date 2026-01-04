@@ -15,7 +15,8 @@ export const GITHUB_ISSUE_REVIEW_URL =
   "https://github.com/2654400439/UCAS_CoursePPT_2021-2022/issues/new?template=review.yml";
 
 // Current primary review submission entry: Tencent Questionnaire (more private + lower friction).
-export const REVIEW_SUBMIT_URL = "https://wj.qq.com/s2/25396571/8cdc/";
+// export const REVIEW_SUBMIT_URL = "https://wj.qq.com/s2/25396571/8cdc/";
+export const REVIEW_SUBMIT_URL = "https://wj.qq.com/s2/25421061/5c9b/";
 
 /**
  * “学期结束提醒”功能（静态站默认无后端）：
