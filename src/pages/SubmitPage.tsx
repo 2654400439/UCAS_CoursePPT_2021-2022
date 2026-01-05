@@ -7,6 +7,11 @@ import step2Img from "../data/pic/step2.png";
 import step3Img from "../data/pic/step3.png";
 import step4Img from "../data/pic/step4.png";
 import step5Img from "../data/pic/step5.png";
+import step1Webp from "../data/pic/step1.webp";
+import step2Webp from "../data/pic/step2.webp";
+import step3Webp from "../data/pic/step3.webp";
+import step4Webp from "../data/pic/step4.webp";
+import step5Webp from "../data/pic/step5.webp";
 import coursesCsvRaw from "../data/courses.csv?raw";
 
 type ParsedCourseRow = {
@@ -741,12 +746,16 @@ export function SubmitPage() {
 
             <div className="p-4">
               <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
-                <img
-                  src={[step1Img, step2Img, step3Img, step4Img, step5Img][guideStep]}
-                  alt={`引导步骤 ${guideStep + 1}`}
-                  className="h-auto w-full select-none"
-                  draggable={false}
-                />
+                <picture>
+                  <source type="image/webp" srcSet={[step1Webp, step2Webp, step3Webp, step4Webp, step5Webp][guideStep]} />
+                  <img
+                    src={[step1Img, step2Img, step3Img, step4Img, step5Img][guideStep]}
+                    alt={`引导步骤 ${guideStep + 1}`}
+                    className="h-auto w-full select-none"
+                    draggable={false}
+                    decoding="async"
+                  />
+                </picture>
               </div>
 
               <div className="mt-4 space-y-2 text-sm text-neutral-800">
