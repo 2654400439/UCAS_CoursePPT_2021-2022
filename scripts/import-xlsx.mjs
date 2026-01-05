@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 
 const INPUT = path.join(ROOT, "src", "data", "reviews_MESA2021.xlsx");
 const OUTPUT = path.join(ROOT, "src", "data", "reviews.generated.ts");
+const DATA_DIR = path.join(ROOT, "src", "data");
 
 function normalizeHeader(h) {
   return String(h ?? "")
@@ -174,6 +175,211 @@ function makeCourseKey(courseName, instructors) {
   return `${normalizeText(courseName)}__${canonicalInstructors(instructors)}`;
 }
 
+function stripBOM(s) {
+  const x = String(s ?? "");
+  return x.charCodeAt(0) === 0xfeff ? x.slice(1) : x;
+}
+
+// Minimal RFC4180-ish CSV parser (handles quotes + commas + newlines inside quotes).
+function parseCSV(text) {
+  const s = stripBOM(String(text ?? "")).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        const next = s[i + 1];
+        if (next === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cell += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inQuotes = true;
+      continue;
+    }
+    if (ch === ",") {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+    if (ch === "\n") {
+      row.push(cell);
+      cell = "";
+      // Skip trailing completely empty lines
+      if (row.some((x) => String(x ?? "") !== "")) rows.push(row);
+      row = [];
+      continue;
+    }
+    cell += ch;
+  }
+  row.push(cell);
+  if (row.some((x) => String(x ?? "") !== "")) rows.push(row);
+  return rows;
+}
+
+function findWjPastedTSVColumnIndex(headerCells) {
+  const norm = headerCells.map((h) => normalizeHeader(h));
+  // Known: "2.粘贴提交内容"
+  let idx = norm.findIndex((h) => h.includes("粘贴提交内容"));
+  if (idx >= 0) return idx;
+  idx = norm.findIndex((h) => h.includes("粘贴") && h.includes("提交"));
+  if (idx >= 0) return idx;
+  return -1;
+}
+
+function normalizePastedTSV(raw) {
+  let s = String(raw ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  // Some exports may collapse row line-breaks into spaces (or even remove the delimiter),
+  // so the whole TSV becomes a single long line: header + many course rows.
+  // Recover by inserting '\n' before each "courseCode<TAB>" token.
+  // Heuristic: courseCode is usually long alnum with optional "-<class>" suffix.
+  if (s.includes("课程编码") && !s.includes("\n")) {
+    const m = s.match(/([0-9A-Za-z]{10,}(?:-[0-9A-Za-z]+)?)\t/);
+    if (m && typeof m.index === "number") {
+      const firstIdx = m.index;
+      const headerPart = s.slice(0, firstIdx).trimEnd();
+      let rest = s.slice(firstIdx);
+      // Insert newline before every courseCode<TAB> (including the first one), then drop leading newline.
+      rest = rest.replace(/\s*([0-9A-Za-z]{10,}(?:-[0-9A-Za-z]+)?)\t/g, "\n$1\t").replace(/^\n/, "");
+      s = `${headerPart}\n${rest}`;
+    }
+  }
+  return s.trim();
+}
+
+function parseExportedTSVToReviews(tsvText, ctxBase, getNextId) {
+  const warnings = [];
+  const errors = [];
+  const reviews = [];
+
+  const s = normalizePastedTSV(tsvText);
+  if (!s) return { reviews, warnings, errors };
+
+  const lines = s
+    .split("\n")
+    .map((l) => String(l ?? "").trimEnd())
+    .filter((l) => l.trim() !== "");
+
+  if (!lines.length) return { reviews, warnings, errors };
+
+  const splitTabs = (line) => String(line ?? "").split("\t").map((x) => String(x ?? ""));
+
+  // Header row: should start with 课程编码\t课程名称...
+  const headerCells = splitTabs(lines[0]).map((x) => normalizeText(x));
+  const hasHeader = headerCells.length >= 8 && normalizeText(headerCells[0]) === "课程编码";
+  const start = hasHeader ? 1 : 0;
+  if (!hasHeader) warnings.push({ ctx: ctxBase, warnings: ["TSV 未识别到表头：将按固定列顺序解析"], sample: { preview: headerCells.slice(0, 5).join(" | ") } });
+
+  for (let i = start; i < lines.length; i++) {
+    const cells = splitTabs(lines[i]);
+    // Fixed order (exportTSV):
+    // 0 课程编码,1 课程名称,2 任课老师,3 学分,4 学位课,5 学期,6 价值,7 及格难度,8 高分难度,9 备注
+    if (cells.length < 6) continue;
+
+    const courseCode = normalizeText(cells[0]);
+    const courseName = normalizeText(cells[1]);
+    const instructors = normalizeText(cells[2]);
+    const credits = normalizeText(cells[3]);
+    const isDegreeCourse = normalizeText(cells[4]);
+    const term = normalizeText(cells[5]);
+    const value = normalizeText(cells[6]);
+    const passDifficulty = normalizeText(cells[7]);
+    const highScoreDifficulty = normalizeText(cells[8]);
+    const remarkRaw = cells.slice(9).join("\t"); // be tolerant if extra tabs exist
+    const remark = String(remarkRaw ?? "").replace(/\\\\n/g, "\n"); // undo export escaping
+
+    const remapped = {
+      课程编号: courseCode,
+      课程名称: courseName,
+      任课老师: instructors,
+      学分: credits,
+      学位课: isDegreeCourse,
+      学期: term,
+      价值: value,
+      及格难度: passDifficulty,
+      高分难度: highScoreDifficulty,
+      备注: remark,
+      开课学院: "",
+    };
+
+    const ctx = { ...ctxBase, rowIndex: i + 1, id: getNextId() };
+    const r = mapRowToReview(remapped, ctx);
+    if (r.ok) {
+      reviews.push(r.review);
+      if (r.warnings?.length) warnings.push({ ctx, warnings: r.warnings, sample: { courseName: r.review.courseName, instructors: r.review.instructors, term: r.review.term } });
+    } else {
+      errors.push(r);
+    }
+  }
+
+  return { reviews, warnings, errors };
+}
+
+function listWjExportCsvFiles() {
+  if (!fs.existsSync(DATA_DIR)) return [];
+  const res = [];
+  const walk = (dir) => {
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (ent.name === "node_modules") continue;
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) walk(full);
+      else if (ent.isFile() && ent.name.toLowerCase().endsWith(".csv")) {
+        // exclude internal mapping file
+        if (ent.name === "courses.csv") continue;
+        // questionnaire export convention: numeric prefix (e.g. 25421061_*.csv)
+        if (!/^\d{6,}_/.test(ent.name)) continue;
+        res.push(full);
+      }
+    }
+  };
+  walk(DATA_DIR);
+  return res.sort();
+}
+
+function importWjCsvExports(getNextId) {
+  const files = listWjExportCsvFiles();
+  const imported = [];
+  const warnings = [];
+  const errors = [];
+
+  for (const file of files) {
+    const csvText = fs.readFileSync(file, "utf8");
+    const rows = parseCSV(csvText);
+    if (!rows.length) continue;
+
+    const header = rows[0];
+    const tsvCol = findWjPastedTSVColumnIndex(header);
+    if (tsvCol < 0) {
+      warnings.push({ ctx: { sheetName: `csv:${path.relative(DATA_DIR, file)}`, rowIndex: 1, id: -1 }, warnings: ["未找到“粘贴提交内容”列：跳过该 CSV 文件"], sample: { headers: header.slice(0, 8).join(",") } });
+      continue;
+    }
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const tsv = row?.[tsvCol];
+      if (!normalizeText(tsv)) continue;
+      const ctxBase = { sheetName: `csv:${path.relative(DATA_DIR, file)}`, rowIndex: i + 1 };
+      const r = parseExportedTSVToReviews(tsv, ctxBase, getNextId);
+      imported.push(...r.reviews);
+      warnings.push(...r.warnings);
+      errors.push(...r.errors);
+    }
+  }
+
+  return { files, imported, warnings, errors };
+}
+
 function mapRowToReview(raw, ctx) {
   const get = (...names) => {
     for (const n of names) {
@@ -262,6 +468,7 @@ function main() {
   const warnings = [];
 
   let nextId = 1;
+  const getNextId = () => nextId++;
 
   for (const sheetName of wb.SheetNames) {
     const ws = wb.Sheets[sheetName];
@@ -279,30 +486,47 @@ function main() {
         remapped[normalizeHeader(k)] = v;
       }
 
-      const ctx = { sheetName, rowIndex: i + 2, id: nextId }; // +2: header row + 1-based
+      const ctx = { sheetName, rowIndex: i + 2, id: getNextId() }; // +2: header row + 1-based
       const r = mapRowToReview(remapped, ctx);
       if (r.ok) {
         all.push(r.review);
         if (r.warnings?.length) warnings.push({ ctx, warnings: r.warnings, sample: { courseName: r.review.courseName, instructors: r.review.instructors, term: r.review.term } });
-        nextId += 1;
       } else {
         errors.push(r);
       }
     }
   }
 
-  // Basic de-dup: if same courseName+instructors+term+remark, keep first
+  // Import additional Tencent Questionnaire CSV exports (if any)
+  const wj = importWjCsvExports(getNextId);
+  for (const r of wj.imported) all.push(r);
+  for (const e of wj.errors) errors.push(e);
+  for (const w of wj.warnings) warnings.push(w);
+
+  // De-dup: if same course+term+ratings+remark, keep first (xlsx first, then CSV exports)
   const seen = new Set();
   const deduped = [];
   for (const r of all) {
-    const key = `${makeCourseKey(r.courseName, r.instructors)}__${normalizeText(r.term)}__${normalizeText(r.remark ?? "")}`;
+    const key = [
+      makeCourseKey(r.courseName, r.instructors),
+      normalizeText(r.term),
+      normalizeText(r.courseCode ?? ""),
+      String(r.credits ?? ""),
+      r.isDegreeCourse ? "1" : "0",
+      String(r.value),
+      String(r.passDifficulty),
+      String(r.highScoreDifficulty),
+      normalizeText(r.remark ?? ""),
+    ].join("__");
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(r);
   }
 
   const banner = `// This file is auto-generated by scripts/import-xlsx.mjs
-// Source: src/data/reviews_MESA2021.xlsx
+// Sources:
+// - src/data/reviews_MESA2021.xlsx
+// - src/data/<问卷导出>/**/*.csv (column contains "粘贴提交内容")
 // DO NOT EDIT MANUALLY.
 `;
 
@@ -315,10 +539,14 @@ export const REVIEWS: ReviewRow[] = ${JSON.stringify(deduped, null, 2)} as unkno
   fs.writeFileSync(OUTPUT, out, "utf8");
 
   console.log(`✅ 已生成：${path.relative(ROOT, OUTPUT)}`);
-  console.log(`- 读取到评价：${all.length}`);
+  console.log(`- 读取到评价（xlsx + csv）：${all.length}`);
   console.log(`- 去重后评价：${deduped.length}`);
   console.log(`- 跳过（不规范/缺字段）：${errors.length}`);
   console.log(`- 警告（已自动修复/容错）：${warnings.length}`);
+  if (wj.files?.length) {
+    console.log(`- 问卷 CSV 文件：${wj.files.length}`);
+    console.log(`- 问卷 CSV 导入评价：${wj.imported.length}`);
+  }
 
   if (errors.length) {
     console.log("\n--- 跳过示例（前 10 条）---");
