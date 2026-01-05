@@ -77,10 +77,16 @@ function buildInstructorMaps(csvText: string): {
 
   for (const line of lines) {
     const parts = line.split(",");
+    // courses.csv:
+    // - legacy: 课程编号,课程名称,任课教师
+    // - current: 课程编号,课程名称,任课教师,开课学院
     if (parts.length < 3) continue;
     const code = normalizeText(parts[0]);
     const name = normalizeText(parts[1]);
-    const instructor = normalizeText(parts.slice(2).join(","));
+    const instructor =
+      parts.length >= 4
+        ? normalizeText(parts.slice(2, -1).join(","))
+        : normalizeText(parts.slice(2).join(","));
     if (!code || !name || !instructor) continue;
 
     const prevCode = byCode.get(code);

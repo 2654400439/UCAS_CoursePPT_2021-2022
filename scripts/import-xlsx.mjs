@@ -175,6 +175,94 @@ function makeCourseKey(courseName, instructors) {
   return `${normalizeText(courseName)}__${canonicalInstructors(instructors)}`;
 }
 
+function normalizeCollegeText(s) {
+  // Some sources contain stray spaces inside CN words, e.g. "数 学科学学院".
+  return normalizeText(s).replace(/\s+/g, "");
+}
+
+function normalizeCourseCodeForLookup(code) {
+  const c = normalizeText(code);
+  if (!c) return [];
+  const res = [c];
+  const base = c.split("-")[0];
+  if (base && base !== c) res.push(base);
+  return res;
+}
+
+function buildCourseMetaMapsFromCoursesCsv() {
+  const byCode = new Map();
+  const byName = new Map();
+
+  const file = path.join(DATA_DIR, "courses.csv");
+  if (!fs.existsSync(file)) return { byCode, byName, file, count: 0 };
+
+  const text = fs.readFileSync(file, "utf8");
+  const lines = stripBOM(text)
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((l) => String(l ?? "").trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    const parts = line.split(",");
+    // courses.csv:
+    // - legacy: 课程编号,课程名称,任课教师
+    // - current: 课程编号,课程名称,任课教师,开课学院
+    if (parts.length < 3) continue;
+
+    const code = normalizeText(parts[0]);
+    const name = normalizeText(parts[1]);
+    const instructors = parts.length >= 4 ? normalizeText(parts.slice(2, -1).join(",")) : normalizeText(parts.slice(2).join(","));
+    const college = parts.length >= 4 ? normalizeCollegeText(parts[parts.length - 1]) : "";
+
+    if (!code || !name) continue;
+
+    if (!byCode.has(code)) byCode.set(code, { instructors, college });
+    if (!byName.has(name)) byName.set(name, { instructors, college });
+  }
+
+  return { byCode, byName, file, count: lines.length };
+}
+
+function fillCollegeFromCourseMeta(reviews, courseMeta) {
+  let filled = 0;
+  let already = 0;
+  let missing = 0;
+
+  for (const r of reviews) {
+    const existing = normalizeCollegeText(r.college ?? "");
+    if (existing) {
+      if (r.college !== existing) r.college = existing;
+      already += 1;
+      continue;
+    }
+
+    let hit = null;
+    for (const cc of normalizeCourseCodeForLookup(r.courseCode ?? "")) {
+      const m = courseMeta.byCode.get(cc);
+      if (m?.college) {
+        hit = m;
+        break;
+      }
+    }
+    if (!hit) {
+      const nameKey = normalizeText(r.courseName);
+      const m = courseMeta.byName.get(nameKey);
+      if (m?.college) hit = m;
+    }
+
+    if (hit?.college) {
+      r.college = hit.college;
+      filled += 1;
+    } else {
+      missing += 1;
+    }
+  }
+
+  return { filled, already, missing };
+}
+
 function stripBOM(s) {
   const x = String(s ?? "");
   return x.charCodeAt(0) === 0xfeff ? x.slice(1) : x;
@@ -398,7 +486,7 @@ function mapRowToReview(raw, ctx) {
   const termParsed = normalizeTerm(termRaw);
   const term = termParsed.label;
   const courseCode = normalizeText(get("选课编号", "课程编号", "选课号", "编号"));
-  const college = normalizeText(get("开课学院", "学院", "开课单位"));
+  const college = normalizeCollegeText(get("开课学院", "学院", "开课单位"));
   const value = parseStar(get("价值"));
   const passDifficulty = parseStar(get("及格难度"));
   const highScoreDifficulty = parseStar(get("高分难度"));
@@ -503,6 +591,10 @@ function main() {
   for (const e of wj.errors) errors.push(e);
   for (const w of wj.warnings) warnings.push(w);
 
+  // Fill missing colleges from courses.csv mapping (best-effort)
+  const courseMeta = buildCourseMetaMapsFromCoursesCsv();
+  const fillStats = fillCollegeFromCourseMeta(all, courseMeta);
+
   // De-dup: if same course+term+ratings+remark, keep first (xlsx first, then CSV exports)
   const seen = new Set();
   const deduped = [];
@@ -543,6 +635,8 @@ export const REVIEWS: ReviewRow[] = ${JSON.stringify(deduped, null, 2)} as unkno
   console.log(`- 去重后评价：${deduped.length}`);
   console.log(`- 跳过（不规范/缺字段）：${errors.length}`);
   console.log(`- 警告（已自动修复/容错）：${warnings.length}`);
+  console.log(`- 开课学院补齐：新增 ${fillStats.filled} / 原本已有 ${fillStats.already} / 仍缺失 ${fillStats.missing}`);
+  if (courseMeta.count) console.log(`- courses.csv 映射：${courseMeta.count} 行（${path.relative(ROOT, courseMeta.file)}）`);
   if (wj.files?.length) {
     console.log(`- 问卷 CSV 文件：${wj.files.length}`);
     console.log(`- 问卷 CSV 导入评价：${wj.imported.length}`);
